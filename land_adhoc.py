@@ -408,7 +408,7 @@ def generate_comprehensive_summary(df, df_c, control_variant, variants, method, 
                 parse_stats(s_res, seg_name, get_counts(sub_df))
 
     # 3. 2-Level Breakdown (Top 2 dims only)
-    priority_cols = ['country', 'platform_name', 'device_model', 'os']
+    priority_cols = ['country', 'platform_name', 'device_model', 'os','source']
     selected_dims = [c for c in priority_cols if c in cat_cols]
     # Fill with others if not enough
     for c in cat_cols:
@@ -654,6 +654,17 @@ def render_dashboard():
                 c2.multiselect("Platforms", all_p, default=all_p, disabled=True)
             else:
                 platforms = c2.multiselect("Platforms", all_p, default=all_p)
+
+        traffic_source = []
+        if 'source' in df_main.columns:
+            all_p = sorted(df_main['source'].dropna().unique())
+            sel_all_p = c2.checkbox("Select All traffic sources", value=True)
+            if sel_all_p:
+                traffic_source = all_p
+                c2.multiselect("traffic source", all_p, default=all_p, disabled=True)
+            else:
+                traffic_source = c2.multiselect("traffic source", all_p, default=all_p)
+
         # Apply Filters Dynamically
         mask = pd.Series(True, index=df_main.index)
         
@@ -662,6 +673,9 @@ def render_dashboard():
              
         if 'platform_name' in df_main.columns and platforms:
              mask &= df_main['platform_name'].isin(platforms)
+
+        if 'source' in df_main.columns and traffic_source:
+             mask &= df_main['source'].isin(traffic_source)
              
         df_filtered = df_main[mask]
              
@@ -918,7 +932,7 @@ def render_dashboard():
         if 'country' in df_filtered.columns and 'country' not in cat_cols: cat_cols.append('country')
         if 'platform_name' in df_filtered.columns and 'platform_name' not in cat_cols: cat_cols.append('platform_name')
         if 'platform_model' in df_filtered.columns and 'platform_model' not in cat_cols: cat_cols.append('platform_model')
-        
+        if 'source' in df_filtered.columns and 'source' not in cat_cols: cat_cols.append('source')
         cat_cols = sorted(list(set(cat_cols)))
         
         if cat_cols:
