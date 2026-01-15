@@ -515,7 +515,7 @@ def render_summary_widget(findings, control_var):
             # Note: Streamlit dataframe styler support is good.
             st.dataframe(
                 df_loss.style.map(lambda x: 'color: red', subset=['Lift']),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
         else:
@@ -527,7 +527,7 @@ def render_summary_widget(findings, control_var):
             df_win = format_df(wins)
             st.dataframe(
                 df_win.style.map(lambda x: 'color: green', subset=['Lift']),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
         else:
@@ -623,6 +623,7 @@ def render_dashboard():
         c1, c2 = st.columns(2)
         
         # Country Filter
+        sel_all_c = True
         if 'country' in df_main.columns:
             all_c = sorted(df_main['country'].dropna().unique())
             sel_all_c = c1.checkbox("Select All Countries", value=True)
@@ -633,19 +634,11 @@ def render_dashboard():
                 countries = c1.multiselect("Countries", all_c, default=all_c)
             if not countries: countries = all_c
         else:
-            countries = [] # Or None, loop ignores if empty list logic handled?
-            # Actually if 'country' not in columns, we shouldn't filter by it.
-            # But the filter application downstream uses it.
-            pass
-            
-        # Fallback filter application needs care. 
-        # But wait, below: df_filtered = df_main[(df_main['country'].isin(countries))...]
-        # This will fail if country doesn't exist.
-        
-        # Let's adjust filter application logic too.
+            countries = []
         
         # Dynamic Platform Filter (if exists)
         platforms = []
+        sel_all_p = True
         if 'platform_name' in df_main.columns:
             all_p = sorted(df_main['platform_name'].dropna().unique())
             sel_all_p = c2.checkbox("Select All Platforms", value=True)
@@ -654,27 +647,29 @@ def render_dashboard():
                 c2.multiselect("Platforms", all_p, default=all_p, disabled=True)
             else:
                 platforms = c2.multiselect("Platforms", all_p, default=all_p)
-
+        
+        # Traffic Source Filter
         traffic_source = []
+        sel_all_s = True
         if 'source' in df_main.columns:
-            all_p = sorted(df_main['source'].dropna().unique())
-            sel_all_p = c2.checkbox("Select All traffic sources", value=True)
-            if sel_all_p:
-                traffic_source = all_p
-                c2.multiselect("traffic source", all_p, default=all_p, disabled=True)
+            all_s = sorted(df_main['source'].dropna().unique())
+            sel_all_s = c2.checkbox("Select All traffic sources", value=True)
+            if sel_all_s:
+                traffic_source = all_s
+                c2.multiselect("traffic source", all_s, default=all_s, disabled=True)
             else:
-                traffic_source = c2.multiselect("traffic source", all_p, default=all_p)
+                traffic_source = c2.multiselect("traffic source", all_s, default=all_s)
 
         # Apply Filters Dynamically
         mask = pd.Series(True, index=df_main.index)
         
-        if 'country' in df_main.columns and countries:
+        if 'country' in df_main.columns and not sel_all_c:
              mask &= df_main['country'].isin(countries)
              
-        if 'platform_name' in df_main.columns and platforms:
+        if 'platform_name' in df_main.columns and not sel_all_p:
              mask &= df_main['platform_name'].isin(platforms)
 
-        if 'source' in df_main.columns and traffic_source:
+        if 'source' in df_main.columns and not sel_all_s:
              mask &= df_main['source'].isin(traffic_source)
              
         df_filtered = df_main[mask]
@@ -820,7 +815,7 @@ def render_dashboard():
 
         st.dataframe(
             df_display.style.apply(highlight_row, axis=1),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={'_status': None}
         )
